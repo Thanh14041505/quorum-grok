@@ -162,6 +162,56 @@ export interface SmcSummary {
   zigzag: Array<{ i: number; time: number; price: number; kind: "H" | "L" }>;
 }
 
+export type TradeSetupType =
+  | "PULLBACK_UPTREND"
+  | "UPTREND_BREAKOUT_CONTINUATION"
+  | "DOWNTREND_RELIEF_RALLY"
+  | "MAJOR_REVERSAL"
+  | "NONE";
+
+export type TradeDecision =
+  | "STRONG_SETUP"
+  | "BUY"
+  | "COUNTERTREND_PROBE"
+  | "REVERSAL_PROBE"
+  | "WATCH"
+  | "NO_TRADE";
+
+export type TradeIssueSeverity = "HARD_VETO" | "WARNING" | "CONTEXT_CONFLICT";
+
+export interface TradePlanIssue {
+  code: string;
+  source: string;
+  severity: TradeIssueSeverity;
+  message: string;
+}
+
+export interface TradePlan {
+  setupType: TradeSetupType;
+  decision: TradeDecision;
+  primaryTrend: "BULLISH" | "BEARISH" | "MIXED" | "UNKNOWN";
+  summary: string;
+  buyVotes: string[];
+  strongBuyVotes: string[];
+  watchVotes: string[];
+  exitVotes: string[];
+  reduceVotes: string[];
+  totalVoting: number;
+  supportingStrategies: string[];
+  conflictingStrategies: string[];
+  hardVetoes: TradePlanIssue[];
+  warnings: TradePlanIssue[];
+  contextConflicts: TradePlanIssue[];
+  reasons: string[];
+  ticketSource: string | null;
+  riskMultiplier: number;
+  entry: number | null;
+  sl: number | null;
+  tp1: number | null;
+  tp2: number | null;
+  rr: number | null;
+}
+
 export interface StockScanRow {
   symbol: string;
   status: "OK" | "FILTERED" | "ERROR";
@@ -190,6 +240,8 @@ export interface StockScanRow {
   sessionDate: string;
   sessionLagDays: number;
   smc: SmcSummary | null;
+  /** Setup-aware decision layer; S7/S8/S9 remain separate from the S1–S6 ballot. */
+  tradePlan?: TradePlan | null;
 }
 
 export interface ScanReport {

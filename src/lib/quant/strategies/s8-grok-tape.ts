@@ -139,6 +139,7 @@ export const grokTape: Strategy = {
         rsAligned: tape.rsAligned,
         extended: tape.extended,
         swingLow,
+        confirmedSwingLow: tape.lastLow?.price ?? null,
         swingHigh,
         high20: tape.high20,
         low20: tape.low20,

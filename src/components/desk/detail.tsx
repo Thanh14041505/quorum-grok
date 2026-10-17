@@ -71,6 +71,8 @@ export function StockDetail({ row }: { row: StockScanRow }) {
 
       <p className="max-w-3xl text-sm leading-6 text-muted">{thesis(row)}</p>
 
+      {row.tradePlan ? <TradePlanPanel plan={row.tradePlan} /> : null}
+
       {row.grokCall ? <GrokCallCard call={row.grokCall} sessionDate={row.sessionDate} /> : null}
 
       {row.smc ? <SmcCard smc={row.smc} held={Boolean(holding)} /> : null}
@@ -244,3 +246,75 @@ function Camp({ title, items, tone }: { title: string; items: string[]; tone: "u
     </div>
   );
 }
+
+function TradePlanPanel({ plan }: { plan: NonNullable<StockScanRow["tradePlan"]> }) {
+  const setupLabels: Record<string, string> = {
+    PULLBACK_UPTREND: "Pullback trong xu hướng tăng",
+    UPTREND_BREAKOUT_CONTINUATION: "Breakout tiếp diễn uptrend",
+    DOWNTREND_RELIEF_RALLY: "Nhịp hồi kỹ thuật trong downtrend",
+    MAJOR_REVERSAL: "Đảo chiều xu hướng lớn",
+    NONE: "Chưa phân loại setup",
+  };
+  const tone =
+    plan.decision === "STRONG_SETUP" || plan.decision === "BUY"
+      ? "text-up"
+      : plan.decision === "COUNTERTREND_PROBE" || plan.decision === "REVERSAL_PROBE"
+        ? "text-warn"
+        : plan.decision === "NO_TRADE"
+          ? "text-down"
+          : "text-muted";
+  const hasTicket = plan.entry != null && plan.sl != null && plan.tp1 != null;
+  return (
+    <section className="rounded-lg border border-border-strong bg-bg-elevated p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.16em] text-subtle">Trade setup consensus · S1–S6 vote</p>
+          <h2 className="mt-1 text-lg font-medium">{setupLabels[plan.setupType] ?? plan.setupType}</h2>
+          <p className={"mt-1 font-mono text-xs font-medium " + tone}>{plan.decision.replaceAll("_", " ")}</p>
+        </div>
+        <div className="text-right">
+          <p className="font-mono text-sm">{plan.buyVotes.length}/{plan.totalVoting} BUY</p>
+          <p className="mt-1 text-[11px] text-muted">
+            {plan.exitVotes.length} EXIT · {plan.reduceVotes.length} REDUCE · risk {plan.riskMultiplier.toFixed(2)}x
+          </p>
+        </div>
+      </div>
+      <p className="mt-3 text-sm leading-6 text-muted">{plan.summary}</p>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <RiskCell label="Plan Entry" value={formatPrice(plan.entry)} />
+        <RiskCell label="Plan SL" value={formatPrice(plan.sl)} />
+        <RiskCell label="Plan TP1 / TP2" value={formatPrice(plan.tp1) + " · " + formatPrice(plan.tp2)} />
+        <RiskCell label="Plan R:R / source" value={formatRr(plan.rr) + " · " + (plan.ticketSource ?? "N/A")} />
+      </div>
+      {plan.supportingStrategies.length ? (
+        <p className="mt-3 text-xs text-up">Support: {plan.supportingStrategies.join(", ")}</p>
+      ) : null}
+      {plan.conflictingStrategies.length ? (
+        <p className="mt-1 text-xs text-warn">Conflict: {plan.conflictingStrategies.join(", ")}</p>
+      ) : null}
+      {plan.hardVetoes.length ? (
+        <div className="mt-3 rounded-md border border-down/30 bg-surface px-3 py-2">
+          <p className="text-[10px] uppercase tracking-[0.14em] text-down">Hard veto</p>
+          {plan.hardVetoes.map((issue) => (
+            <p key={issue.code + issue.source} className="mt-1 text-xs text-muted">{issue.source}: {issue.message}</p>
+          ))}
+        </div>
+      ) : null}
+      {plan.warnings.length || plan.contextConflicts.length ? (
+        <div className="mt-3 space-y-1">
+          {[...plan.warnings, ...plan.contextConflicts].map((issue) => (
+            <p key={issue.code + issue.source} className="text-xs text-warn">
+              {issue.severity === "CONTEXT_CONFLICT" ? "Context conflict" : "Warning"} · {issue.source}: {issue.message}
+            </p>
+          ))}
+        </div>
+      ) : null}
+      {plan.decision === "WATCH" || plan.decision === "NO_TRADE" ? (
+        <p className="mt-3 text-xs text-warn">Reference levels only — this decision does not authorize a new position or position sizing.</p>
+      ) : !hasTicket ? (
+        <p className="mt-3 text-xs text-muted">No complete long ticket is available. Do not size a position from a WATCH/NO_TRADE decision.</p>
+      ) : null}
+    </section>
+  );
+}
+

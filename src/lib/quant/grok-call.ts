@@ -3,16 +3,16 @@ import { formatPrice } from "./format";
 
 /**
  * Grok Call — khuyến nghị mua/bán của Grok.
- * Không phải phiếu thứ 8 trong consensus. Có thể WAIT khi 7 não đang BUY.
+ * Không tham gia consensus S1–S6. Có thể WAIT dù các phiếu S1–S6 đang BUY.
  * HIGH conflict luôn thắng ego: không long vào bất đồng.
  */
 export function buildGrokCall(
   s8: StrategyResult | undefined,
-  seven: StrategyResult[],
   consensus: ConsensusResult,
   cfg: ScanConfig,
   regime: Regime,
   smc?: SmcSummary | null,
+  holder?: StrategyResult,
 ): GrokCall {
   const structure = String(s8?.extras.structure ?? "MIXED");
   const extended = Boolean(s8?.extras.extended);
@@ -22,12 +22,12 @@ export function buildGrokCall(
   const coiled = Boolean(s8?.extras.coiled);
   const s8Signal = s8?.signal ?? "NO_SIGNAL";
   const bearReg = regime === "BEAR" || regime === "STRONG_BEAR";
-  const s7 = seven.find((s) => s.shortId === "S7");
+  const s7 = holder;
 
   const why: string[] = [];
   if (s8?.reasons.length) why.push(...s8.reasons.slice(0, 2));
   if (smc?.thesis) why.push(smc.thesis);
-  if (consensus.conflict !== "NONE") why.push(`Seven-brain conflict ${consensus.conflict} (${consensus.bullish.join(" ") || "none"} vs ${consensus.bearish.join(" ") || "none"})`);
+  if (consensus.conflict !== "NONE") why.push(`Six-voter conflict ${consensus.conflict} (${consensus.bullish.join(" ") || "none"} vs ${consensus.bearish.join(" ") || "none"})`);
 
   const invalidation = smc?.sl ?? swingLow;
   const horizon = "5–15 sessions (swing, T+1.5)";
@@ -52,7 +52,7 @@ export function buildGrokCall(
     );
   }
   if (consensus.conflict === "HIGH") {
-    return call("WAIT", "LOW", "No long. Seven brains are in a fight — that is the signal.", why, invalidation, horizon, "A clean 4+ agreement with structure still HH/HL.", true, s8, consensus, smc);
+    return call("WAIT", "LOW", "No long. Six voting strategies are in a fight — that is the signal.", why, invalidation, horizon, "A clean 4+/6 agreement with structure still HH/HL.", true, s8, consensus, smc);
   }
   if (bearReg && !cfg.allowNewLongInBear) {
     const protect = s8Signal === "EXIT" || (s7 && (s7.signal === "EXIT" || s7.signal === "REDUCE"));
@@ -98,7 +98,7 @@ export function buildGrokCall(
     return call(
       "PROTECT",
       "MEDIUM",
-      "The seven are cutting. Even if the tape is not ugly, I do not fade a 3+ exit camp with a new long.",
+      "The voting strategies are cutting. Even if the tape is not ugly, I do not fade a 3+ exit camp with a new long.",
       why,
       invalidation,
       horizon,
@@ -166,10 +166,10 @@ export function buildGrokCall(
     s8Long
       ? "Tape is constructive but I still want a cleaner pullback or more agreement. Waiting is a position."
       : "No edge I would spend risk on today. Flat is allowed.",
-    why.length ? why : ["No HH/HL pullback, no coil, no 4-brain agreement."],
+    why.length ? why : ["No HH/HL pullback, no coil, no 4/6 agreement."],
     invalidation,
     horizon,
-    "HH/HL pullback with Donchian ≤ 55% and at least 3 of 7 not selling.",
+    "HH/HL pullback with Donchian ≤ 55% and at least 3 of 6 not selling.",
     disagrees,
     s8,
     consensus,

@@ -104,10 +104,12 @@ export function buildTicket(row: StockScanRow, cfg: ScanConfig): Ticket | null {
   const cap = (cfg.capital * cfg.maxPositionPct) / row.entry;
   const shares = Math.floor(Math.min(raw, cap) / 100) * 100;
   const rr = row.rr;
-  const gated = (rr != null && rr < cfg.minRrSwing) || (row.tp1 != null && (row.tp1 / row.entry - 1) * 100 < cfg.minTpPct);
+  const minTargetApplies = row.tradePlan?.setupType !== "DOWNTREND_RELIEF_RALLY";
+  const gated = (rr != null && rr < cfg.minRrSwing) ||
+    (minTargetApplies && row.tp1 != null && (row.tp1 / row.entry - 1) * 100 < cfg.minTpPct);
   let gateReason: string | null = null;
   if (rr != null && rr < cfg.minRrSwing) gateReason = `R:R ${formatRr(rr)} below min ${cfg.minRrSwing.toFixed(1)}`;
-  else if (row.tp1 != null && (row.tp1 / row.entry - 1) * 100 < cfg.minTpPct) {
+  else if (minTargetApplies && row.tp1 != null && (row.tp1 / row.entry - 1) * 100 < cfg.minTpPct) {
     gateReason = `TP1 ${formatPrice(row.tp1)} is under min T1 ${cfg.minTpPct}%`;
   }
   return {
@@ -129,6 +131,9 @@ export function thesis(row: StockScanRow): string {
   const smcBit = row.smc
     ? ` SMC ${row.smc.bias}/${row.smc.fresh} (${row.smc.pd}).`
     : "";
+  const planBit = row.tradePlan
+    ? ` Setup ${row.tradePlan.setupType}: ${row.tradePlan.decision}. ${row.tradePlan.summary}`
+    : "";
   const bulls = consensus.bullish.length ? consensus.bullish.join(" ") : "no brain";
   const bears = consensus.bearish.length ? consensus.bearish.join(" ") : "none";
   if (consensus.signal === "FILTERED" || consensus.signal === "ERROR") {
@@ -138,13 +143,13 @@ export function thesis(row: StockScanRow): string {
     return `Chart structure is not a long.${smcBit} ${row.smc.thesis}`;
   }
   if (consensus.conflict === "HIGH") {
-    return `Disagreement is the signal: ${bulls} vs ${bears}. Do not average into HIGH conflict.${smcBit}`;
+    return `Disagreement is the signal: ${bulls} vs ${bears}. Do not average into HIGH conflict.${smcBit}${planBit}`;
   }
   if (consensus.signal === "STRONG_BUY" || consensus.signal === "BUY") {
-    return `${bulls} want the long. Selling camp: ${bears}. Conflict ${consensus.conflict}.${smcBit}`;
+    return `${bulls} want the long. Selling camp: ${bears}. Conflict ${consensus.conflict}.${smcBit}${planBit}`;
   }
   if (consensus.signal === "EXIT" || consensus.signal === "REDUCE" || consensus.signal === "SELL") {
-    return `${bears} are cutting. Buying camp: ${bulls}. Protect first.${smcBit}`;
+    return `${bears} are cutting. Buying camp: ${bulls}. Protect first.${smcBit}${planBit}`;
   }
-  return `Split tape — buy-side ${consensus.agreement}/${consensus.total}.${smcBit} ${consensus.summary[0] ?? ""}`.trim();
+  return `Split tape — buy-side ${consensus.agreement}/${consensus.total}.${smcBit} ${planBit} ${consensus.summary[0] ?? ""}`.trim();
 }

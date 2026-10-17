@@ -87,7 +87,7 @@ export function ScannerTable({
       </p>
 
       <div className="max-h-[calc(100vh-18rem)] overflow-auto rounded-lg border border-border bg-bg-elevated">
-        <table className="min-w-[1480px] w-full border-collapse text-left text-xs">
+        <table className="min-w-[1640px] w-full border-collapse text-left text-xs">
           <thead className="sticky top-0 z-20 bg-bg-elevated">
             <tr className="border-b border-border text-[10px] uppercase tracking-[0.14em] text-subtle">
               <th className="sticky left-0 z-30 bg-bg-elevated px-3 py-2 font-medium">Ticker</th>
@@ -102,6 +102,7 @@ export function ScannerTable({
                 </th>
               ))}
               <th className="px-2 py-2 font-medium">Consensus</th>
+              <th className="px-2 py-2 font-medium">Trade setup</th>
               <th className="px-2 py-2 font-medium">Call</th>
               <th className="px-2 py-2 font-medium">SMC</th>
               <th className="px-2 py-2 font-medium">Conflict</th>
@@ -161,6 +162,21 @@ export function ScannerTable({
                   </span>
                 </td>
                 <td className="px-2 py-2">
+                  {row.tradePlan ? (
+                    <div className="min-w-[9rem] space-y-1">
+                      <span className={"rounded-sm px-1.5 py-0.5 font-mono text-[10px] " + tradeDecisionClass(row.tradePlan.decision)}>
+                        {row.tradePlan.decision.replaceAll("_", " ")}
+                      </span>
+                      <p className="max-w-[10rem] text-[10px] leading-4 text-muted">
+                        {tradeSetupLabel(row.tradePlan.setupType)}
+                      </p>
+                      <p className="font-mono text-[10px] text-subtle">
+                        {row.tradePlan.buyVotes.length}/{row.tradePlan.totalVoting} BUY · {row.tradePlan.hardVetoes.length} veto
+                      </p>
+                    </div>
+                  ) : <span className="text-subtle">—</span>}
+                </td>
+                <td className="px-2 py-2">
                   {row.grokCall ? (
                     <span className={"rounded-sm px-1.5 py-0.5 font-mono text-[10px] " + grokStanceClass(row.grokCall.stance)}>
                       {grokStanceCompact(row.grokCall.stance)}
@@ -189,7 +205,7 @@ export function ScannerTable({
             ))}
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={15 + STRATEGIES.length} className="px-3 py-8 text-center text-sm text-muted">
+                <td colSpan={16 + STRATEGIES.length} className="px-3 py-8 text-center text-sm text-muted">
                   No rows match this filter. Clear search or switch queue to All.
                 </td>
               </tr>
@@ -235,4 +251,22 @@ function conflictTone(c: string): string {
   if (c === "MEDIUM") return "text-warn";
   if (c === "LOW") return "text-hold";
   return "text-subtle";
+}
+
+function tradeSetupLabel(setup: string): string {
+  const labels: Record<string, string> = {
+    PULLBACK_UPTREND: "Pullback · uptrend",
+    UPTREND_BREAKOUT_CONTINUATION: "Breakout continuation",
+    DOWNTREND_RELIEF_RALLY: "Countertrend relief rally",
+    MAJOR_REVERSAL: "Major reversal",
+    NONE: "No classified setup",
+  };
+  return labels[setup] ?? setup;
+}
+
+function tradeDecisionClass(decision: string): string {
+  if (decision === "STRONG_SETUP" || decision === "BUY") return "bg-up-dim text-up";
+  if (decision === "COUNTERTREND_PROBE" || decision === "REVERSAL_PROBE") return "bg-warn-dim text-warn";
+  if (decision === "NO_TRADE") return "bg-down-dim text-down";
+  return "bg-surface-2 text-muted";
 }
