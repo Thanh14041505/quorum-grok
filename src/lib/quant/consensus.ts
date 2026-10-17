@@ -1,6 +1,7 @@
 import type { ConsensusResult, Signal, StrategyResult } from "./types";
 
-const BULL: Signal[] = ["STRONG_BUY", "BUY", "ADD"];
+const VOTERS = new Set(["S1", "S2", "S3", "S4", "S5", "S6"]);
+const BULL: Signal[] = ["STRONG_BUY", "BUY"];
 const BEAR: Signal[] = ["EXIT", "SELL", "REDUCE"];
 const NEUT: Signal[] = ["WATCH", "HOLD", "NO_SIGNAL", "FILTERED"];
 
@@ -17,12 +18,16 @@ function bucket(signal: Signal): "bull" | "bear" | "neut" | "err" {
  * Conflict là thông tin — không biến bất đồng thành "fake certainty".
  */
 export function buildConsensus(results: StrategyResult[]): ConsensusResult {
-  const live = results.filter((r) => r.signal !== "ERROR");
+  // Only S1–S6 are voting strategies. S7 manages an existing holding;
+  // S8 validates tape; S9 provides a separate HTF SMC plan.
+  const voters = results.filter((r) => VOTERS.has(r.shortId));
+  const live = voters.filter((r) => r.signal !== "ERROR");
   const bullish = live.filter((r) => bucket(r.signal) === "bull").map((r) => r.shortId);
   const bearish = live.filter((r) => bucket(r.signal) === "bear").map((r) => r.shortId);
   const neutral = live.filter((r) => bucket(r.signal) === "neut").map((r) => r.shortId);
-  const errors = results.filter((r) => r.signal === "ERROR").map((r) => r.shortId);
-  const total = live.length;
+  const errors = voters.filter((r) => r.signal === "ERROR").map((r) => r.shortId);
+  // Keep the denominator at six so errors are visible rather than silently shrinking quorum.
+  const total = voters.length;
 
   let conflict: ConsensusResult["conflict"] = "NONE";
   if (bullish.length && bearish.length) {
@@ -45,6 +50,7 @@ export function buildConsensus(results: StrategyResult[]): ConsensusResult {
     `Neutral ${neutral.length}/${total}`,
     `SELL-side ${bearish.length}/${total}`,
     `Conflict ${conflict}`,
+    "Ballot: S1–S6 only; S7 holder, S8 tape and S9 SMC are separate",
   ];
   if (errors.length) summary.push(`Errors ${errors.join(",")}`);
 

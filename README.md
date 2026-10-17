@@ -1,8 +1,8 @@
 # Quorum VN
 
-Seven independent Vietnam-stock trading brains, one shared data layer, a consensus desk that refuses to hide disagreement.
+Nine Vietnam-stock strategies, one shared data layer, and a consensus desk that keeps disagreement visible.
 
-This is a professional web terminal (not a notebook dump). Each strategy keeps the philosophy of its source notebook. Signals are never merged into a fake 87/100 score.
+This is a professional web terminal (not a notebook dump). Each strategy keeps the philosophy of its source notebook. S1–S6 are the voting strategies; S7 is a holder advisor, S8 is an independent tape validator, and S9 is an HTF SMC structure plan. Signals are never merged into a fake 87/100 score.
 
 ## Desk
 
@@ -28,6 +28,20 @@ Prices are stored in VND and shown as **nghìn VNĐ** (66.40). Percentages use `
 | S8 | Grok Tape | Original | Confirmed swings, Donchian location, effort/result, ATR coil, RS persistence — **does not vote** |
 | S9 | SMC Structure | Original | **Major** zigzag (≥8%, D/W/M), BOS/CHoCH, Fib OTE 0.618–0.786. Buy only at HTF discount + money-in or a held low retest. Long-only: no short ticket. |
 | — | Grok Call | Original | Buy/sell recommendation: SCALE IN / LEAN LONG / WAIT / PROTECT. Can disagree with consensus. |
+
+
+## Trade setup consensus
+
+The desk classifies new-long opportunities into four distinct setups instead of expecting all nine strategies to agree:
+
+- **Pullback in uptrend** — S1–S6 use a 4-of-6 BUY/STRONG_BUY quorum; S2/S4 and S8 help confirm trend, location and timing.
+- **Uptrend breakout continuation** — the same 4-of-6 quorum, with S8 structure/demand/extension checks and S3 VSA context.
+- **Downtrend relief rally** — a specialist countertrend setup. It does not require 4-of-6 votes, but requires complementary recovery evidence, a valid ticket and controlled risk (default 0.5x).
+- **Major reversal** — requires a valid S9 SMC fresh BUY, confirmed S6 regular bullish divergence, a major-discount/near-low context and SMC flow-in or a held retest. Early reversal probes use reduced risk.
+
+S7 never contributes a new-entry vote: it speaks only about an existing holding (ADD/HOLD/REDUCE/EXIT). S8 and S9 are validators/specialist setup sources, not consensus ballots. VSA DISTRIBUTION, tape supply, broken confirmed swing lows, invalid long tickets and setup-specific vetoes are shown explicitly. Vetoes are evaluated in the context of the setup; a bearish trend signal may be context for a relief rally, but it is not ignored for trend-following trades.
+
+The Trade Plan panel reports setup, decision, S1–S6 vote counts, conflict/veto reasons, ticket source and risk multiplier. The selected ticket comes from one relevant strategy; Entry/SL/TP are not independently median-merged across unrelated strategies. Scores are heuristic ranks, not calibrated win probabilities. Validate with historical tests and actual execution costs before risking capital.
 
 ## Data
 
@@ -73,4 +87,4 @@ npm run preview
 3. Framework preset để Vite / Other. Build command: `npm run build`. Output đã cấu hình Nitro cho Vercel — không cần đổi.
 4. Deploy. Dùng URL Vercel trong tab mới. Không cần Streamlit, không cần secret.
 
-Defaults: lookback 800, buy score 75, watch score 60, min T1 7%. Broad list is 243 names.
+Defaults: lookback 800, buy score 75, watch score 60, min T1 7%. Trend-following setup quorum defaults to 4/6 voting strategies. Broad list is 243 names.

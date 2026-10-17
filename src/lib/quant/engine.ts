@@ -4,7 +4,8 @@ import { buildContext } from "./context";
 import { buildConsensus } from "./consensus";
 import { calendarLagDays, vnDateFromUnix, vnToday } from "./dates";
 import { detectRegime } from "./regime";
-import { overlayRisk } from "./risk";
+import { sizePlannedTicket } from "./risk";
+import { buildTradePlan } from "./trade-plan";
 import { dailyPulse } from "./strategies/s1-daily-pulse";
 import { ichimoku3tf } from "./strategies/s2-ichimoku";
 import { vsaSmartMoney } from "./strategies/s3-vsa";
@@ -30,8 +31,8 @@ export const STRATEGIES: Strategy[] = [
   smcStructure,
 ];
 
-/** S1–S7 vote. S8 tape + S9 SMC are displayed, not ballots. */
-export const VOTING_IDS = new Set(["S1", "S2", "S3", "S4", "S5", "S6", "S7"]);
+/** S1–S6 vote. S7 is for holders; S8 tape + S9 SMC are separate validators. */
+export const VOTING_IDS = new Set(["S1", "S2", "S3", "S4", "S5", "S6"]);
 
 export function runStrategies(ctx: ReturnType<typeof buildContext>): StrategyResult[] {
   return STRATEGIES.map((s) => {
@@ -83,21 +84,32 @@ export function scanSymbol(
   }
 
   const strategies = runStrategies(ctx);
-  const seven = strategies.filter((s) => VOTING_IDS.has(s.shortId));
-  const consensus = buildConsensus(seven);
+  const voters = strategies.filter((s) => VOTING_IDS.has(s.shortId));
+  const consensus = buildConsensus(voters);
   if (notes.length) {
     consensus.summary = [...notes, ...consensus.summary];
   }
-  const s9 = strategies.find((s) => s.shortId === "S9");
   const smc = toSmcSummary(ctx.smc);
-  const risk = overlayRisk(ctx.snap.close, seven, cfg, s9);
+  const tradePlan = buildTradePlan({
+    strategies,
+    consensus,
+    price: ctx.snap.close,
+    regime: regime.regime,
+    smc,
+    cfg,
+  });
+  const actionable = ["STRONG_SETUP", "BUY", "COUNTERTREND_PROBE", "REVERSAL_PROBE"].includes(tradePlan.decision);
+  const risk = actionable
+    ? sizePlannedTicket(ctx.snap.close, tradePlan, cfg, tradePlan.riskMultiplier)
+    : { entry: null, sl: null, tp1: null, tp2: null, rr: null, riskPct: null, positionSize: null, lotShares: null };
   const grokCall = buildGrokCall(
     strategies.find((s) => s.shortId === "S8"),
-    seven,
+    voters,
     consensus,
     cfg,
     regime.regime,
     smc,
+    strategies.find((s) => s.shortId === "S7"),
   );
   const prev = candles.length > 1 ? candles[candles.length - 2]!.close : last.close;
   const alpha = strategies.find((s) => s.shortId === "S1")?.score ?? null;
@@ -114,6 +126,7 @@ export function scanSymbol(
     regimeScore: regime.score,
     strategies,
     consensus,
+    tradePlan,
     entry: risk.entry,
     sl: risk.sl,
     tp1: risk.tp1,
@@ -170,7 +183,7 @@ function stubRow(
     consensus: {
       signal: "FILTERED",
       agreement: 0,
-      total: 7,
+      total: 6,
       conflict: "NONE",
       bullish: [],
       neutral: [],
@@ -201,6 +214,7 @@ function stubRow(
     sessionDate,
     sessionLagDays: sessionDate ? calendarLagDays(sessionDate) : 999,
     smc: null,
+    tradePlan: null,
   };
 }
 
@@ -262,7 +276,10 @@ function rank(row: StockScanRow): number {
     STRONG_BUY: 6, BUY: 5, ADD: 4.5, WATCH: 3, HOLD: 2.5, REDUCE: 2, EXIT: 1.5, SELL: 1, NO_SIGNAL: 0,
   };
   const smcBoost = row.smc?.fresh === "BUY" ? 0.4 : row.smc?.fresh === "SKIP" ? -0.3 : 0;
-  return (order[row.consensus.signal] ?? 0) * 10 + row.consensus.agreement + smcBoost;
+  const setupBoost = row.tradePlan?.decision === "STRONG_SETUP" ? 2
+    : row.tradePlan?.decision === "BUY" ? 1
+      : row.tradePlan?.decision === "COUNTERTREND_PROBE" || row.tradePlan?.decision === "REVERSAL_PROBE" ? 0.5 : 0;
+  return (order[row.consensus.signal] ?? 0) * 10 + row.consensus.agreement + smcBoost + setupBoost;
 }
 
 function toSmcSummary(plan: ReturnType<typeof buildContext>["smc"]): SmcSummary {

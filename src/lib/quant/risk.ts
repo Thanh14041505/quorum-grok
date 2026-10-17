@@ -1,6 +1,7 @@
 import type { ScanConfig, StrategyResult } from "./types";
 import { rrFrom } from "./strategies/contract";
 import { isLongTicket } from "./smc";
+import type { TradePlan } from "./types";
 
 export interface RiskOverlay {
   entry: number | null;
@@ -51,10 +52,11 @@ function size(
   tp1: number | null,
   tp2: number | null,
   cfg: ScanConfig,
+  riskMultiplier = 1,
 ): RiskOverlay {
   const rr = rrFrom(entry, sl, tp1);
   const riskFrac = (entry - sl) / entry;
-  const rawSize = cfg.capital * cfg.riskPerTrade / Math.max(entry - sl, entry * 0.01);
+  const rawSize = cfg.capital * cfg.riskPerTrade * riskMultiplier / Math.max(entry - sl, entry * 0.01);
   const maxShares = (cfg.capital * cfg.maxPositionPct) / entry;
   const shares = Math.floor(Math.min(rawSize, maxShares) / 100) * 100;
   return {
@@ -66,3 +68,30 @@ function size(
 }
 
 export { overlayRisk as computeRisk };
+
+
+/**
+ * Size one already-selected setup ticket. Unlike the legacy overlay, this
+ * never takes medians of unrelated strategy levels. The caller must first
+ * decide that the setup is actionable; WATCH/NO_TRADE must not call this.
+ */
+export function sizePlannedTicket(
+  price: number,
+  ticket: Pick<TradePlan, "entry" | "sl" | "tp1" | "tp2">,
+  cfg: ScanConfig,
+  riskMultiplier = 1,
+): RiskOverlay {
+  const empty: RiskOverlay = {
+    entry: null, sl: null, tp1: null, tp2: null, rr: null,
+    riskPct: null, positionSize: null, lotShares: null,
+  };
+  const { entry, sl, tp1, tp2 } = ticket;
+  if (
+    entry == null || sl == null || tp1 == null ||
+    ![price, entry, sl, tp1].every(Number.isFinite) ||
+    !isLongTicket(price, entry, sl, tp1) ||
+    !(riskMultiplier > 0)
+  ) return empty;
+
+  return size(entry, sl, tp1, tp2, cfg, riskMultiplier);
+}

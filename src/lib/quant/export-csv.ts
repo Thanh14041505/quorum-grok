@@ -12,7 +12,8 @@ export function scanToCsv(report: ScanReport): string {
   const header = [
     "ticker", "session", "status", "gate", "price_k", "chg", "volume", "regime",
     "s1", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9",
-    "consensus", "agreement", "conflict", "grok_call", "smc_bias", "smc_fresh", "smc_held", "alpha",
+    "consensus", "agreement", "conflict", "trade_setup", "trade_decision", "buy_votes", "vote_exits", "trade_ticket_source", "risk_multiplier",
+    "grok_call", "smc_bias", "smc_fresh", "smc_held", "alpha",
     "entry_k", "sl_k", "tp1_k", "rr", "lot_shares", "notes",
   ];
   const lines = [header.join(",")];
@@ -40,6 +41,12 @@ export function scanToCsv(report: ScanReport): string {
         row.consensus.signal,
         `${row.consensus.agreement}/${row.consensus.total}`,
         row.consensus.conflict,
+        row.tradePlan?.setupType ?? "",
+        row.tradePlan?.decision ?? "",
+        row.tradePlan ? `${row.tradePlan.buyVotes.length}/${row.tradePlan.totalVoting}` : "",
+        row.tradePlan?.exitVotes.join("|") ?? "",
+        row.tradePlan?.ticketSource ?? "",
+        row.tradePlan?.riskMultiplier ?? "",
         row.grokCall?.stance ?? "",
         row.smc?.bias ?? "",
         row.smc?.fresh ?? "",
