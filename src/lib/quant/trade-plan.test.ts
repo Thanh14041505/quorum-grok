@@ -101,7 +101,7 @@ test("a newly broken confirmed swing low invalidates a relief-rally probe", () =
     strategy("S5", "EXIT", { trend: 0.8 }),
     strategy("S6", "BUY", { kind: "bull_reg", strength: 7 }),
     strategy("S7", "HOLD", { holder: "HOLD" }),
-    strategy("S8", "EXIT", { structure: "LH_LL", effort: "DEMAND", swingLow: 101, extended: false }),
+    strategy("S8", "EXIT", { structure: "LH_LL", effort: "DEMAND", swingLow: 101, confirmedSwingLow: 101, extended: false }),
     strategy("S9", "REDUCE", { fresh: "SKIP", bias: "BEAR" }),
   ];
   const plan = buildTradePlan({

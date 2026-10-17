@@ -3,12 +3,11 @@ import { formatPrice } from "./format";
 
 /**
  * Grok Call — khuyến nghị mua/bán của Grok.
- * Không phải phiếu thứ 8 trong consensus. Có thể WAIT khi 7 não đang BUY.
+ * Không tham gia consensus S1–S6. Có thể WAIT dù các phiếu S1–S6 đang BUY.
  * HIGH conflict luôn thắng ego: không long vào bất đồng.
  */
 export function buildGrokCall(
   s8: StrategyResult | undefined,
-  seven: StrategyResult[],
   consensus: ConsensusResult,
   cfg: ScanConfig,
   regime: Regime,
@@ -28,7 +27,7 @@ export function buildGrokCall(
   const why: string[] = [];
   if (s8?.reasons.length) why.push(...s8.reasons.slice(0, 2));
   if (smc?.thesis) why.push(smc.thesis);
-  if (consensus.conflict !== "NONE") why.push(`Seven-brain conflict ${consensus.conflict} (${consensus.bullish.join(" ") || "none"} vs ${consensus.bearish.join(" ") || "none"})`);
+  if (consensus.conflict !== "NONE") why.push(`Six-voter conflict ${consensus.conflict} (${consensus.bullish.join(" ") || "none"} vs ${consensus.bearish.join(" ") || "none"})`);
 
   const invalidation = smc?.sl ?? swingLow;
   const horizon = "5–15 sessions (swing, T+1.5)";

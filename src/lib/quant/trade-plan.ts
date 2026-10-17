@@ -9,7 +9,7 @@ import type {
   TradePlanIssue,
   TradeSetupType,
 } from "./types";
-import { rrFrom } from "./strategies/contract";
+import { rrFrom } from "./strategies/contract.ts";
 
 const VOTER_IDS = new Set(["S1", "S2", "S3", "S4", "S5", "S6"]);
 const BUY_SIGNALS = new Set(["BUY", "STRONG_BUY"]);
@@ -58,7 +58,8 @@ export function buildTradePlan(input: BuildTradePlanInput): TradePlan {
   const s8Coiled = extraBoolean(s8, "coiled");
   const rsAligned = extraBoolean(s8, "rsAligned");
   const donchianPct = extraNumber(s8, "donchianPct");
-  const s8SwingLow = extraNumber(s8, "swingLow");
+  // S8 swingLow can fall back to a Donchian range; only this explicit field is a confirmed pivot.
+  const s8SwingLow = extraNumber(s8, "confirmedSwingLow");
   const brokeSwing = s8SwingLow != null && price < s8SwingLow * 0.997;
   const s1Setup = extraString(s1, "setup");
   const s2DailyAbove = extraBoolean(s2, "d1");
@@ -124,7 +125,7 @@ export function buildTradePlan(input: BuildTradePlanInput): TradePlan {
     addIssue(hardVetoes, "TAPE_SUPPLY", "S8", "HARD_VETO", "Supply bar: do not open a new long until the tape improves.");
   }
   if (brokeSwing && (specialized || trendSetup)) {
-    addIssue(hardVetoes, "BROKE_CONFIRMED_SWING_LOW", "S8", "HARD_VETO", "Price closed materially below the last confirmed swing low.");
+    addIssue(hardVetoes, "BROKE_CONFIRMED_SWING_LOW", "S8", "HARD_VETO", "Price closed materially below S8's last confirmed pivot low.");
   }
   if (specialized && (divergence === "bear_reg" || divergence === "bear_hid")) {
     addIssue(hardVetoes, "BEARISH_DIVERGENCE", "S6", "HARD_VETO", "Bearish divergence conflicts with a long reversal/bounce setup.");
@@ -155,6 +156,12 @@ export function buildTradePlan(input: BuildTradePlanInput): TradePlan {
   }
   if (s7 && (s7.signal === "EXIT" || s7.signal === "REDUCE")) {
     addIssue(warnings, "HOLDER_RISK", "S7", "WARNING", `S7 ${s7.signal} applies to an existing holding; review position risk separately.`);
+  }
+  if (smc?.held === "CUT") {
+    addIssue(warnings, "SMC_HOLDER_CUT", "S9", "WARNING", "SMC says CUT for an existing position; this is not a new-entry ballot.");
+  }
+  if (specialized && (s8?.signal === "EXIT" || s8Structure === "LH_LL")) {
+    addIssue(contextConflicts, "TAPE_BEARISH_CONTEXT", "S8", "CONTEXT_CONFLICT", "Grok Tape still reads bearish structure; countertrend/reversal evidence must stay small and invalidation must be respected.");
   }
   if (s8Extended) {
     addIssue(warnings, "EXTENDED_TAPE", "S8", "WARNING", "Price is extended near the 20-day high; wait for a retest rather than chasing.");
@@ -224,7 +231,7 @@ export function buildTradePlan(input: BuildTradePlanInput): TradePlan {
   } else if (setupType === "NONE" && (buyVotes.length >= 2 || consensus.signal === "WATCH")) {
     decision = "WATCH";
   }
-  if (hardVetoes.length && setupType !== "NONE") decision = "NO_TRADE";
+  if (hardVetoes.length) decision = "NO_TRADE";
   if (warnings.some((issue) => issue.code === "VOTING_REDUCE") && (decision === "STRONG_SETUP" || decision === "BUY")) decision = "WATCH";
   if (!ticket && (decision === "BUY" || decision === "STRONG_SETUP" || decision === "COUNTERTREND_PROBE" || decision === "REVERSAL_PROBE")) {
     decision = "WATCH";

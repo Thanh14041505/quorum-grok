@@ -104,7 +104,6 @@ export function scanSymbol(
     : { entry: null, sl: null, tp1: null, tp2: null, rr: null, riskPct: null, positionSize: null, lotShares: null };
   const grokCall = buildGrokCall(
     strategies.find((s) => s.shortId === "S8"),
-    voters,
     consensus,
     cfg,
     regime.regime,
