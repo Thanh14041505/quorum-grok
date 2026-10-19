@@ -81,7 +81,8 @@ export const FULL_WATCHLIST = [
   "KLB", "VAB", "C32", "CIG", "HSL", "RYG", "VTO", "HII", "TCM", "PPC",
   "ELC", "TCI", "SHI", "DAH", "LDG", "HQC", "HHP", "SCR", "LCG", "QCG",
   "TTH", "NRC", "TVC", "TIG", "SVN", "DL1", "KIP", "CTX", "APF", "SBB",
-  "VNP", "HVN", "TLG", 'PET', 'VOS', 'KSB'
+  "VNP", "HVN", "TLG", 'PET', 'VOS', 'KSB', 'PVP', 'PCB', 'TCX', 'LPS',
+  'DMX'
 ];
 
 export const BASE_WEIGHTS: Record<string, number> = {
