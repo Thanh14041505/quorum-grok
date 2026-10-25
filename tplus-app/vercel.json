@@ -1,0 +1,6 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "functions": { "api/market.js": { "maxDuration": 30 } },
+  "rewrites": [{ "source": "/stock/:symbol", "destination": "/index.html" }]
+}
