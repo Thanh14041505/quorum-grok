@@ -1,5 +1,9 @@
 # Quorum VN
 
+## Standalone T+ Compass app
+
+The new OHLCV-only T+ scanner lives in [`tplus-app`](./tplus-app/README.md). Run `cd tplus-app && npm ci && npm run dev`, or deploy a separate Vercel project with **Root Directory = `tplus-app`**. It includes saved watchlists, structural entry/SL/targets, conservative net R:R, major SMC/discount charts and eight strategy views (S7 removed). The original Quorum desk below remains unchanged.
+
 Nine Vietnam-stock strategies, one shared data layer, and a consensus desk that keeps disagreement visible.
 
 This is a professional web terminal (not a notebook dump). Each strategy keeps the philosophy of its source notebook. S1–S6 are the voting strategies; S7 is a holder advisor, S8 is an independent tape validator, and S9 is an HTF SMC structure plan. Signals are never merged into a fake 87/100 score.
